@@ -1,20 +1,35 @@
 // content.js
 
 let popupOpen = false;
+let transcriptFetched = false;
+let cachedTranscript = null;
+let isInitialized = false;
+let currentVideoId = null;
+
+function initializeScript() {
+  if (isInitialized) return;
+  isInitialized = true;
+  openTranscript();
+}
 
 function openTranscript() {
-  // Click the "expand" button to open the description
   const expandButton = document.querySelector('tp-yt-paper-button#expand');
   if (expandButton) {
     expandButton.click();
-    
-    // Wait for the "Show transcript" button to appear and click it
     setTimeout(() => {
       const showTranscriptButton = document.querySelector('button[aria-label="Show transcript"]');
       if (showTranscriptButton) {
         showTranscriptButton.click();
+        setTimeout(fetchTranscript, 2000); // Adjust this delay if needed
       }
     }, 1000); // Adjust this delay if needed
+  }
+}
+
+function closeTranscript() {
+  const closeTranscriptButton = document.querySelector('button[aria-label="Close transcript"]');
+  if (closeTranscriptButton) {
+    closeTranscriptButton.click();
   }
 }
 
@@ -31,26 +46,35 @@ function getCurrentTimestamp() {
 
 function getTranscript() {
   const transcriptSegments = document.querySelectorAll('ytd-transcript-segment-renderer');
-  const transcript = Array.from(transcriptSegments).map(segment => {
-    const timestamp = segment.querySelector('.segment-timestamp').textContent.trim();
-    const caption = segment.querySelector('.segment-text').textContent.trim();
-    return { timestamp, caption };
+  return Array.from(transcriptSegments).map(segment => ({
+    timestamp: segment.querySelector('.segment-timestamp').textContent.trim(),
+    caption: segment.querySelector('.segment-text').textContent.trim()
+  }));
+}
+
+function fetchTranscript() {
+  cachedTranscript = getTranscript();
+  transcriptFetched = true;
+  closeTranscript();
+  sendDataUpdate();
+}
+
+function sendDataUpdate() {
+  const timestamp = getCurrentTimestamp();
+  console.log('Sending data update');
+  chrome.runtime.sendMessage({
+    action: "dataUpdated",
+    data: {
+      timestamp,
+      transcript: cachedTranscript,
+      transcriptFetched: transcriptFetched
+    }
   });
-  return transcript;
 }
 
 function sendData() {
   if (popupOpen) {
-    const timestamp = getCurrentTimestamp();
-    const transcript = getTranscript();
-    console.log('Sending data update');
-    chrome.runtime.sendMessage({
-      action: "dataUpdated",
-      data: {
-        timestamp,
-        transcript
-      }
-    });
+    sendDataUpdate();
     requestAnimationFrame(sendData);
   }
 }
@@ -58,18 +82,53 @@ function sendData() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "popupOpened") {
     popupOpen = true;
-    openTranscript(); // Call the function to open the transcript
+    if (!isInitialized) {
+      initializeScript();
+    }
+    if (!transcriptFetched) {
+      fetchTranscript();
+    }
+    sendResponse({
+      timestamp: getCurrentTimestamp(),
+      transcript: cachedTranscript,
+      transcriptFetched: transcriptFetched
+    });
     sendData();
   } else if (request.action === "popupClosed") {
     popupOpen = false;
   } else if (request.action === "getData") {
-    const timestamp = getCurrentTimestamp();
-    const transcript = getTranscript();
-    sendResponse({ timestamp, transcript });
+    if (!isInitialized) {
+      initializeScript();
+    }
+    if (!transcriptFetched) {
+      fetchTranscript();
+    }
+    sendResponse({
+      timestamp: getCurrentTimestamp(),
+      transcript: cachedTranscript,
+      transcriptFetched: transcriptFetched
+    });
+  } else if (request.action === "getTimestamp") {
+    sendResponse({ timestamp: getCurrentTimestamp() });
   }
   return true; // Indicates that we will send a response asynchronously
 });
 
-// Initialize data updates when the script runs
-openTranscript(); // Open the transcript when the script first runs
-sendData();
+function checkForVideoChange() {
+  const videoId = new URLSearchParams(window.location.search).get('v');
+  if (videoId && videoId !== currentVideoId) {
+    currentVideoId = videoId;
+    console.log('Video changed, fetching new transcript');
+    transcriptFetched = false;
+    cachedTranscript = null;
+    isInitialized = false;
+    setTimeout(initializeScript, 2000); // Delay initialization
+  }
+  setTimeout(checkForVideoChange, 1000); // Check every second
+}
+
+// Initialize script when it's first injected
+initializeScript();
+
+// Start checking for video changes
+checkForVideoChange();

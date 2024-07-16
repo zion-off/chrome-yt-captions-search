@@ -3,8 +3,7 @@
   "version": "1.0",
   "name": "YouTube Transcript Search",
   "permissions": [
-    "tabs",
-    "scripting",
+    "storage",
     "activeTab"
   ],
   "background": {
