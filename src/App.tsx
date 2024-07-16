@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 interface TranscriptSegment {
   timestamp: string;
@@ -56,6 +56,15 @@ function App() {
     };
   }, []);
 
+  const handleTimestampClick = (timestamp: string) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id!, {
+        action: "seekTo",
+        timestamp: timestamp,
+      });
+    });
+  };
+
   if (isLoading) {
     return <div>Loading transcript...</div>;
   }
@@ -64,7 +73,11 @@ function App() {
     <div>
       <div>Current Time: {currentTimestamp}</div>
       {transcript.map((segment, index) => (
-        <div key={index}>
+        <div
+          key={index}
+          onClick={() => handleTimestampClick(segment.timestamp)}
+          style={{ cursor: "pointer" }}
+        >
           <span>{segment.timestamp}</span>: <span>{segment.caption}</span>
         </div>
       ))}
