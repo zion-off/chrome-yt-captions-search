@@ -15,6 +15,7 @@ function App() {
   const [currentTimestamp, setCurrentTimestamp] = useState("0:00");
   const [closestSegmentIndex, setClosestSegmentIndex] = useState(0);
   const closestSegmentRef = useRef<HTMLDivElement>(null);
+  const [isYouTubeWatch, setIsYouTubeWatch] = useState(false);
 
   const filteredTranscript = transcript.filter((segment) =>
     segment.caption.toLowerCase().includes(searchQuery.toLowerCase())
@@ -26,6 +27,13 @@ function App() {
   };
 
   useEffect(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const url = tabs[0].url;
+      if (url && url.match(/^https?:\/\/www\.youtube\.com\/watch/)) {
+        setIsYouTubeWatch(true);
+      }
+    });
+
     let timestampInterval: number;
     let transcriptCheckInterval: number;
 
@@ -118,6 +126,21 @@ function App() {
       }
     });
   };
+
+  if (!isYouTubeWatch) {
+    return (
+      <div
+        className="flex flex-col gap-4 py-4 text-center justify-center"
+        style={{
+          height: "400px",
+          overflowY: "hidden",
+          background: "radial-gradient(circle, #FFFFFF, #f7f7f5)",
+        }}
+      >
+        <p>Open a YouTube video to see the transcript here!</p>
+      </div>
+    );
+  }
 
   return (
     <div
