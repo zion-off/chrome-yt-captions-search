@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { NextUIProvider } from "@nextui-org/react";
 import { Input, Card, CardBody } from "@nextui-org/react";
 import { SearchIcon } from "./SearchIcon";
@@ -12,6 +12,13 @@ function App() {
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTimestamp, setCurrentTimestamp] = useState("0:00");
+  const [closestSegmentIndex, setClosestSegmentIndex] = useState(0);
+  const closestSegmentRef = useRef<HTMLDivElement>(null);
+
+  const timestampToSeconds = (timestamp: string): number => {
+    const [minutes, seconds] = timestamp.split(":").map(Number);
+    return minutes * 60 + seconds;
+  };
 
   useEffect(() => {
     let timestampInterval: number;
@@ -30,7 +37,9 @@ function App() {
 
     // Notify that popup is opened
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id!, { action: "popupOpened" });
+      if (tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, { action: "popupOpened" });
+      }
     });
 
     // Initial check for transcript
@@ -51,7 +60,9 @@ function App() {
     return () => {
       // Notify that popup is closed
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.sendMessage(tabs[0].id!, { action: "popupClosed" });
+        if (tabs[0].id) {
+          chrome.tabs.sendMessage(tabs[0].id, { action: "popupClosed" });
+        }
       });
       // Clear the intervals when component unmounts
       clearInterval(timestampInterval);
@@ -59,25 +70,48 @@ function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (transcript.length > 0 && currentTimestamp) {
+      const currentSeconds = timestampToSeconds(currentTimestamp);
+      let closestIndex = 0;
+      let minDifference = Infinity;
+
+      transcript.forEach((segment, index) => {
+        const segmentSeconds = timestampToSeconds(segment.timestamp);
+        const difference = Math.abs(segmentSeconds - currentSeconds);
+        if (difference < minDifference) {
+          minDifference = difference;
+          closestIndex = index;
+        }
+      });
+
+      setClosestSegmentIndex(closestIndex);
+    }
+  }, [transcript, currentTimestamp]);
+
+  useEffect(() => {
+    if (closestSegmentRef.current) {
+      closestSegmentRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "center",
+      });
+    }
+  }, [closestSegmentIndex]);
+
   const handleTimestampClick = (timestamp: string) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id!, {
-        action: "seekTo",
-        timestamp: timestamp,
-      });
+      if (tabs[0].id) {
+        chrome.tabs.sendMessage(tabs[0].id, {
+          action: "seekTo",
+          timestamp: timestamp,
+        });
+      }
     });
   };
 
   if (isLoading) {
     return <div>Loading transcript...</div>;
   }
-  /*   mask: linear-gradient(
-    to right,
-    transparent 0%,
-    black 20%,
-    black 80%,
-    transparent 100%
-  ); */
 
   return (
     <div
@@ -121,10 +155,6 @@ function App() {
         />
       </div>
 
-      {/* <div>
-        Current Time: {currentTimestamp}
-      </div> */}
-
       <div
         className="flex-grow overflow-y-auto bg-transparent px-4"
         style={{ mask: "linear-gradient(to top, transparent 0%, black 20%)" }}
@@ -134,7 +164,12 @@ function App() {
             <Card
               key={index}
               style={{ cursor: "pointer" }}
-              className="hover:scale-[1.04] transition-transform"
+              className={`hover:scale-[1.04] transition-transform ${
+                index === closestSegmentIndex
+                  ? "outline outline-2 outline-blue-500"
+                  : ""
+              }`}
+              ref={index === closestSegmentIndex ? closestSegmentRef : null}
             >
               <CardBody onClick={() => handleTimestampClick(segment.timestamp)}>
                 <div className="flex flex-row gap-1">
