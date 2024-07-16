@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
-import { NextUIProvider } from "@nextui-org/react";
+import { useEffect, useState, useRef } from "react";
 import { Input, Card, CardBody } from "@nextui-org/react";
 import { SearchIcon } from "./SearchIcon";
 
@@ -11,9 +10,15 @@ interface TranscriptSegment {
 function App() {
   const [transcript, setTranscript] = useState<TranscriptSegment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingText, setLoadingText] = useState("Fetching transcripts...");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentTimestamp, setCurrentTimestamp] = useState("0:00");
   const [closestSegmentIndex, setClosestSegmentIndex] = useState(0);
   const closestSegmentRef = useRef<HTMLDivElement>(null);
+
+  const filteredTranscript = transcript.filter((segment) =>
+    segment.caption.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const timestampToSeconds = (timestamp: string): number => {
     const [minutes, seconds] = timestamp.split(":").map(Number);
@@ -24,12 +29,17 @@ function App() {
     let timestampInterval: number;
     let transcriptCheckInterval: number;
 
+    setTimeout(() => {
+      setLoadingText("Hmm... that's taking too long. Try refreshing the page?");
+    }, 5000);
+
     function checkTranscript() {
       chrome.runtime.sendMessage({ action: "getData" }, (response) => {
         if (response && response.transcriptFetched) {
           setTranscript(response.transcript);
           setCurrentTimestamp(response.timestamp);
           setIsLoading(false);
+          setLoadingText("Fetching transcripts...");
           clearInterval(transcriptCheckInterval);
         }
       });
@@ -109,21 +119,19 @@ function App() {
     });
   };
 
-  if (isLoading) {
-    return <div>Loading transcript...</div>;
-  }
-
   return (
     <div
       className="flex flex-col gap-4 py-4"
       style={{
-        maxHeight: "500px",
+        height: "500px",
         overflowY: "hidden",
         background: "radial-gradient(circle, #FFFFFF, #f7f7f5)",
       }}
     >
       <div className="px-4">
         <Input
+          value={searchQuery}
+          onValueChange={setSearchQuery}
           label="Search"
           isClearable
           radius="lg"
@@ -148,39 +156,49 @@ function App() {
               "!cursor-text",
             ],
           }}
-          placeholder="Type to search..."
+          placeholder="Search through video transcript..."
           startContent={
             <SearchIcon className="text-black/50 mb-0.5 dark:text-white/90 text-slate-400 pointer-events-none flex-shrink-0" />
           }
         />
       </div>
 
-      <div
-        className="flex-grow overflow-y-auto bg-transparent px-4"
-        style={{ mask: "linear-gradient(to top, transparent 0%, black 20%)" }}
-      >
-        <div className="flex flex-col gap-2">
-          {transcript.map((segment, index) => (
-            <Card
-              key={index}
-              style={{ cursor: "pointer" }}
-              className={`hover:scale-[1.04] transition-transform ${
-                index === closestSegmentIndex
-                  ? "outline outline-2 outline-blue-500"
-                  : ""
-              }`}
-              ref={index === closestSegmentIndex ? closestSegmentRef : null}
-            >
-              <CardBody onClick={() => handleTimestampClick(segment.timestamp)}>
-                <div className="flex flex-row gap-1">
-                  <p className="font-medium basis-4">{segment.timestamp}</p>
-                  <p>{segment.caption}</p>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
+      {isLoading ? (
+        <div className="w-full flex gap-5 justify-center text-center animate-pulse">
+          {loadingText}
         </div>
-      </div>
+      ) : (
+        <div
+          className="flex-grow overflow-y-auto bg-transparent px-4"
+          style={{
+            mask: "linear-gradient(to top, transparent 0%, black 10%, black 95%, transparent 100%)",
+          }}
+        >
+          <div className="flex flex-col gap-2">
+            {filteredTranscript.map((segment, index) => (
+              <Card
+                key={index}
+                style={{ cursor: "pointer" }}
+                className={`hover:scale-[1.04] transition-transform ${
+                  index === closestSegmentIndex
+                    ? "outline outline-2 outline-blue-500"
+                    : ""
+                }`}
+                ref={index === closestSegmentIndex ? closestSegmentRef : null}
+              >
+                <CardBody
+                  onClick={() => handleTimestampClick(segment.timestamp)}
+                >
+                  <div className="flex flex-row gap-1">
+                    <p className="font-medium basis-4">{segment.timestamp}</p>
+                    <p>{segment.caption}</p>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
