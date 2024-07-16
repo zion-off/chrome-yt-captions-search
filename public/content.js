@@ -19,9 +19,8 @@ function openTranscript() {
       const showTranscriptButton = document.querySelector('button[aria-label="Show transcript"]');
       if (showTranscriptButton) {
         showTranscriptButton.click();
-        setTimeout(fetchTranscript, 2000); // Adjust this delay if needed
       }
-    }, 1000); // Adjust this delay if needed
+    }, 1000); // Keep this delay to ensure the expand animation completes
   }
 }
 
@@ -43,6 +42,12 @@ function getCurrentTimestamp() {
   return "0:00";
 }
 
+function isTranscriptVisible() {
+  const transcriptContainer = document.querySelector('ytd-transcript-renderer');
+  const transcriptSegments = document.querySelectorAll('ytd-transcript-segment-renderer');
+  return transcriptContainer && transcriptContainer.offsetParent !== null && transcriptSegments.length > 0;
+}
+
 function getTranscript() {
   const transcriptSegments = document.querySelectorAll('ytd-transcript-segment-renderer');
   return Array.from(transcriptSegments).map(segment => ({
@@ -54,12 +59,19 @@ function getTranscript() {
 function fetchTranscript() {
   if (!transcriptFetched) {
     openTranscript();
-    setTimeout(() => {
-      cachedTranscript = getTranscript();
-      transcriptFetched = true;
-      closeTranscript();
-      sendDataUpdate();
-    }, 3000); // Adjust this delay if needed
+    checkTranscriptVisibility();
+  }
+}
+
+function checkTranscriptVisibility() {
+  if (isTranscriptVisible()) {
+    cachedTranscript = getTranscript();
+    transcriptFetched = true;
+    closeTranscript();
+    sendDataUpdate();
+  } else {
+    // If transcript is not visible yet, check again after a short delay
+    setTimeout(checkTranscriptVisibility, 500);
   }
 }
 
