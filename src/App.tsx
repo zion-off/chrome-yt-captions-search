@@ -1,4 +1,7 @@
 import React, { useEffect, useState } from "react";
+import { NextUIProvider } from "@nextui-org/react";
+import { Input, Card, CardBody } from "@nextui-org/react";
+import { SearchIcon } from "./SearchIcon";
 
 interface TranscriptSegment {
   timestamp: string;
@@ -70,17 +73,66 @@ function App() {
   }
 
   return (
-    <div>
-      <div>Current Time: {currentTimestamp}</div>
-      {transcript.map((segment, index) => (
-        <div
-          key={index}
-          onClick={() => handleTimestampClick(segment.timestamp)}
-          style={{ cursor: "pointer" }}
-        >
-          <span>{segment.timestamp}</span>: <span>{segment.caption}</span>
-        </div>
-      ))}
+    <div
+      className="flex flex-col gap-4"
+      style={{
+        maxHeight: "500px",
+        padding: "20px",
+        overflowY: "auto",
+        background: "radial-gradient(circle, #FFFFFF, #f7f7f5)"
+      }}
+    >
+      <Input
+        label="Search"
+        isClearable
+        radius="lg"
+        classNames={{
+          label: "text-black/50 dark:text-white/90",
+          input: [
+            "bg-transparent",
+            "text-black/90 dark:text-white/90",
+            "placeholder:text-default-700/50 dark:placeholder:text-white/60",
+          ],
+          innerWrapper: "bg-transparent",
+          inputWrapper: [
+            "shadow-md",
+            "bg-default-200/50",
+            "dark:bg-default/60",
+            "backdrop-blur-xl",
+            "backdrop-saturate-200",
+            "hover:bg-default-200/70",
+            "dark:hover:bg-default/70",
+            "group-data-[focus=true]:bg-default-200/50",
+            "dark:group-data-[focus=true]:bg-default/60",
+            "!cursor-text",
+          ],
+        }}
+        placeholder="Type to search..."
+        startContent={
+          <SearchIcon className="text-black/50 mb-0.5 dark:text-white/90 text-slate-400 pointer-events-none flex-shrink-0" />
+        }
+      />
+      {/* <div>
+        Current Time: {currentTimestamp}
+      </div> */}
+
+      <div className="flex flex-col gap-2">
+        {transcript.map((segment, index) => (
+          <Card
+            key={index}
+            onClick={() => handleTimestampClick(segment.timestamp)}
+            style={{ cursor: "pointer" }}
+            className="hover:scale-[1.04] transition-transform"
+          >
+            <CardBody>
+              <div className="flex flex-row gap-1">
+                <p className="font-medium basis-4">{segment.timestamp}</p>
+                <p>{segment.caption}</p>
+              </div>
+            </CardBody>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
