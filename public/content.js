@@ -9,7 +9,6 @@ let currentVideoId = null;
 function initializeScript() {
   if (isInitialized) return;
   isInitialized = true;
-  openTranscript();
 }
 
 function openTranscript() {
@@ -53,10 +52,15 @@ function getTranscript() {
 }
 
 function fetchTranscript() {
-  cachedTranscript = getTranscript();
-  transcriptFetched = true;
-  closeTranscript();
-  sendDataUpdate();
+  if (!transcriptFetched) {
+    openTranscript();
+    setTimeout(() => {
+      cachedTranscript = getTranscript();
+      transcriptFetched = true;
+      closeTranscript();
+      sendDataUpdate();
+    }, 3000); // Adjust this delay if needed
+  }
 }
 
 function sendDataUpdate() {
@@ -118,17 +122,15 @@ function checkForVideoChange() {
   const videoId = new URLSearchParams(window.location.search).get('v');
   if (videoId && videoId !== currentVideoId) {
     currentVideoId = videoId;
-    console.log('Video changed, fetching new transcript');
+    console.log('Video changed, resetting transcript state');
     transcriptFetched = false;
     cachedTranscript = null;
     isInitialized = false;
-    setTimeout(initializeScript, 2000); // Delay initialization
+    // We no longer call initializeScript() here
   }
   setTimeout(checkForVideoChange, 1000); // Check every second
 }
 
-// Initialize script when it's first injected
-initializeScript();
-
-// Start checking for video changes
+// We'll no longer call initializeScript() here
+// Instead, we'll just start checking for video changes
 checkForVideoChange();
