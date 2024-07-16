@@ -12,30 +12,29 @@ function App() {
 
   useEffect(() => {
     let timestampInterval: number;
+    let transcriptCheckInterval: number;
 
-    chrome.runtime.sendMessage({ action: "getData" }, (response) => {
-      if (response && response.transcriptFetched) {
-        setTranscript(response.transcript);
-        setCurrentTimestamp(response.timestamp);
-        setIsLoading(false);
-      } else {
-        // If transcript is not fetched, wait and try again
-        setTimeout(() => {
-          chrome.runtime.sendMessage({ action: "getData" }, (retryResponse) => {
-            if (retryResponse && retryResponse.transcriptFetched) {
-              setTranscript(retryResponse.transcript);
-              setCurrentTimestamp(retryResponse.timestamp);
-            }
-            setIsLoading(false);
-          });
-        }, 5000); // Retry after 5 seconds
-      }
-    });
+    function checkTranscript() {
+      chrome.runtime.sendMessage({ action: "getData" }, (response) => {
+        if (response && response.transcriptFetched) {
+          setTranscript(response.transcript);
+          setCurrentTimestamp(response.timestamp);
+          setIsLoading(false);
+          clearInterval(transcriptCheckInterval);
+        }
+      });
+    }
 
     // Notify that popup is opened
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       chrome.tabs.sendMessage(tabs[0].id!, { action: "popupOpened" });
     });
+
+    // Initial check for transcript
+    checkTranscript();
+
+    // Set up interval to check for transcript every 500ms
+    transcriptCheckInterval = window.setInterval(checkTranscript, 500);
 
     // Set up interval to update timestamp
     timestampInterval = window.setInterval(() => {
@@ -51,8 +50,9 @@ function App() {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id!, { action: "popupClosed" });
       });
-      // Clear the interval when component unmounts
+      // Clear the intervals when component unmounts
       clearInterval(timestampInterval);
+      clearInterval(transcriptCheckInterval);
     };
   }, []);
 
