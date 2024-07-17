@@ -1,6 +1,6 @@
 # Chrome Extension: YouTube Captions Search
 
-Handy took for research. Easily search for keywords in the YouTube captions!
+Handy tool for research. Easily search for keywords in the YouTube captions!
 
 ## Features
 
