@@ -9,9 +9,9 @@ Handy took for research. Easily search for keywords in the YouTube captions!
 - Click on a caption in the popup to skip to the corresponding part in the video
 
 
-<img src="./images/demo.png" alt="Demo" style="max-width: 400px">
+<img src="./images/demo.png" alt="Demo" width="400">
 
-<img src="./images/search.png" alt="Search" style="max-width: 400px">
+<img src="./images/search.png" alt="Search" width="400">
 
 ## Installation
 
