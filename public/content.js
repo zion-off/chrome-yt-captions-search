@@ -3,6 +3,7 @@ let transcriptFetched = false;
 let cachedTranscript = null;
 let isInitialized = false;
 let currentVideoId = null;
+let transcriptStyle = null;
 
 function initializeScript() {
   if (isInitialized) return;
@@ -19,17 +20,39 @@ function openTranscript() {
       );
       if (showTranscriptButton) {
         showTranscriptButton.click();
+        const transcriptContainer = document.querySelector(
+          'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]'
+        );
+        if (transcriptContainer) {
+          console.log("Transcript opened");
+          transcriptStyle = transcriptContainer.style;
+          transcriptContainer.style.visibility = "hidden";
+          transcriptContainer.style.position = "absolute";
+        }
       }
     }, 1000);
   }
 }
 
 function closeTranscript() {
+  const transcriptContainer = document.querySelector(
+    'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]'
+  );
+  if (transcriptContainer) {
+    console.log("Transcript closing");
+    transcriptContainer.style = transcriptStyle;
+  }
   const closeTranscriptButton = document.querySelector(
     'button[aria-label="Close transcript"]'
   );
   if (closeTranscriptButton) {
     closeTranscriptButton.click();
+    const collapseButton = document.querySelector(
+      "tp-yt-paper-button#collapse"
+    );
+    if (collapseButton) {
+      collapseButton.click();
+    }
   }
 }
 
@@ -87,7 +110,6 @@ function checkTranscriptVisibility() {
 
 function sendDataUpdate() {
   const timestamp = getCurrentTimestamp();
-  console.log("Sending data update");
   chrome.runtime.sendMessage({
     action: "dataUpdated",
     data: {

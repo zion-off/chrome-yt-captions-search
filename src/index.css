@@ -10,6 +10,7 @@ body {
   overflow-y: auto;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: radial-gradient(circle, #ffffff, #f7f7f5);
 }
 
 code {
