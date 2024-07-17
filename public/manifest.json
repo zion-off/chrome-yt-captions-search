@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "version": "1.0",
-  "name": "YouTube Transcript Search",
+  "name": "YouTube Captions Search",
   "author": "zion",
   "permissions": ["storage", "activeTab"],
   "background": {
