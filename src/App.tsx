@@ -155,7 +155,6 @@ function App() {
         <Input
           value={searchQuery}
           onValueChange={setSearchQuery}
-          label="Search"
           isClearable
           radius="lg"
           classNames={{
@@ -179,7 +178,7 @@ function App() {
               "!cursor-text",
             ],
           }}
-          placeholder="Search through video transcript..."
+          placeholder="Search..."
           startContent={
             <SearchIcon className="text-black/50 mb-0.5 dark:text-white/90 text-slate-400 pointer-events-none flex-shrink-0" />
           }
