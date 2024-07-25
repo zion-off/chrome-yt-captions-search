@@ -10,27 +10,78 @@ function initializeScript() {
   isInitialized = true;
 }
 
+function waitForElement(selector, callback, maxAttempts = 20, interval = 100) {
+  let attempts = 0;
+  const checkElement = () => {
+    const element = document.querySelector(selector);
+    if (element) {
+      callback(element);
+    } else if (attempts < maxAttempts) {
+      attempts++;
+      setTimeout(checkElement, interval);
+    } else {
+      console.log(
+        `Element ${selector} not found after ${maxAttempts} attempts`
+      );
+    }
+  };
+  checkElement();
+}
+
 function openTranscript() {
   const expandButton = document.querySelector("tp-yt-paper-button#expand");
   if (expandButton) {
+    // Store the current scroll position
+    const scrollPosition = window.scrollY;
+
+    // Function to reset scroll position
+    const resetScroll = () => {
+      window.scrollTo(0, scrollPosition);
+    };
+
+    // Prevent scrolling
+    const preventScroll = (e) => {
+      window.scrollTo(0, scrollPosition);
+    };
+
+    // Add scroll prevention
+    window.addEventListener('scroll', preventScroll, { passive: false });
+
     expandButton.click();
-    setTimeout(() => {
-      const showTranscriptButton = document.querySelector(
-        'button[aria-label="Show transcript"]'
-      );
-      if (showTranscriptButton) {
+
+    // Wait for the "Show transcript" button to appear
+    waitForElement(
+      'button[aria-label="Show transcript"]',
+      (showTranscriptButton) => {
         showTranscriptButton.click();
-        const transcriptContainer = document.querySelector(
-          'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]'
+
+        // Wait for the transcript container to appear
+        waitForElement(
+          'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-searchable-transcript"]',
+          (transcriptContainer) => {
+            console.log("Transcript opened");
+            transcriptStyle = transcriptContainer.style.cssText;
+            transcriptContainer.style.visibility = "hidden";
+            transcriptContainer.style.position = "absolute";
+
+            // Additional check to ensure transcript content is loaded
+            waitForElement(
+              "ytd-transcript-segment-renderer",
+              () => {
+                console.log("Transcript content loaded");
+                // Remove scroll prevention and reset scroll position
+                window.removeEventListener('scroll', preventScroll);
+                resetScroll();
+              },
+              30,
+              200
+            );
+          }
         );
-        if (transcriptContainer) {
-          console.log("Transcript opened");
-          transcriptStyle = transcriptContainer.style;
-          transcriptContainer.style.visibility = "hidden";
-          transcriptContainer.style.position = "absolute";
-        }
       }
-    }, 1000);
+    );
+  } else {
+    console.log("Expand button not found");
   }
 }
 
